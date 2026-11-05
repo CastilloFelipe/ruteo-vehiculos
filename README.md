@@ -4,6 +4,9 @@
 ![Python](https://img.shields.io/badge/python-3.12-blue)
 ![Gurobi](https://img.shields.io/badge/solver-Gurobi-red)
 ![Licencia MIT](https://img.shields.io/badge/licencia-MIT-green)
+[![App en Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://ruteo-vehiculos.streamlit.app/)
+
+**App en línea: https://ruteo-vehiculos.streamlit.app/**
 
 Este proyecto responde la pregunta diaria de cualquier operación de reparto: **¿qué camión visita
 a qué clientes, y en qué orden?** Cada camión tiene capacidad limitada y cada cliente solo puede

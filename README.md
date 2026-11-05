@@ -45,6 +45,23 @@ mejora.
 - **Tipo 2:** ventanas amplias y camiones grandes, con pocas rutas largas y más difíciles de
   optimizar.
 
+### Con más tiempo
+
+La misma corrida con **60 segundos por instancia** en vez de 10 baja la brecha promedio de
+1,5% a **0,8%**. Las familias aleatorias (R, RC) son las que más ganan.
+
+| Familia | ALNS 10 s | ALNS 60 s | Instancias en el récord (10 s → 60 s) |
+|---|---|---|---|
+| C1 | 0.0% | **0.0%** | 9 → 9 |
+| C2 | 0.0% | **0.0%** | 8 → 8 |
+| R1 | 1.2% | **0.5%** | 0 → 2 |
+| R2 | 3.2% | **1.6%** | 0 → 1 |
+| RC1 | 2.3% | **0.9%** | 0 → 1 |
+| RC2 | 2.0% | **1.6%** | 0 → 1 |
+| **Total** | 1.5% | **0.8%** | 17 → 22 |
+
+Datos en [`resultados/benchmark_60s.csv`](resultados/benchmark_60s.csv).
+
 ### Exacto vs heurística
 
 Gurobi resuelve un MILP de dos índices a optimalidad sobre los primeros 25 y 50 clientes de una
@@ -113,9 +130,9 @@ Los datos completos están en [`resultados/benchmark.csv`](resultados/benchmark.
   récord (R1, RC1) y a veces menos (R2, RC2).
 - **Las heurísticas no limitan la flota:** usan los camiones que hagan falta. En la práctica
   nunca pasan de 23, bajo el máximo de 25 de las instancias. El exacto sí impone ese máximo.
-- **El tiempo es fijo, 10 s por instancia.** Con más tiempo la brecha baja, sobre todo en R2 y
-  RC2. Los récords publicados vienen de algoritmos especializados (como HGS) corridos por
-  minutos u horas.
+- **El tiempo es corto:** 10 s por instancia, o 60 s en la corrida extendida, donde la brecha
+  baja a 0,8%. Los récords publicados vienen de algoritmos especializados (como HGS) corridos
+  por minutos u horas.
 - **El exacto está acotado por la licencia** `pip` de Gurobi: 2000 variables y 2000
   restricciones. Con una licencia académica cabe más (`LIMITE_VARIABLES = None` en
   `exacto.py`).
@@ -127,6 +144,7 @@ pip install -r requirements.txt
 pytest -q                                     # evaluador, heurísticas, exacto y app
 streamlit run app/streamlit_app.py            # la app
 python scripts/benchmark.py --segundos 10     # rehace resultados/ (~4 min con 4 procesos)
+python scripts/benchmark.py --segundos 60 --solo benchmark --archivo benchmark_60s.csv  # ~14 min
 ```
 
 Las instancias ya vienen en `data/solomon/`. Para descargarlas de nuevo:

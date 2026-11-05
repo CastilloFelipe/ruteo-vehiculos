@@ -54,6 +54,16 @@ def pct(x, d: int = 1) -> str:
     return "—" if x is None or pd.isna(x) else f"{num(100 * x, d)} %"
 
 
+def mostrar_tabla(df: pd.DataFrame, porcentajes=()) -> None:
+    """st.dataframe con coma decimal. Se formatea solo el texto; ordenar sigue usando los números."""
+    formatos = {c: (lambda x: "—" if pd.isna(x) else f"{num(x, 2)} %") for c in porcentajes}
+    for c in df.columns:
+        if c not in formatos and pd.api.types.is_float_dtype(df[c]):
+            d = 2 if "Segundos" in c else 1
+            formatos[c] = lambda x, d=d: "—" if pd.isna(x) else num(x, d)
+    st.dataframe(df.style.format(formatos), hide_index=True, width="stretch")
+
+
 def como_leer(texto: str) -> None:
     with st.expander("¿Cómo leer esta vista?"):
         st.markdown(texto)
@@ -404,13 +414,13 @@ def vista_resolver() -> None:
                         width="stretch", key="convergencia")
 
     st.subheader("Rutas")
-    st.dataframe(tabla_rutas(inst, rutas), hide_index=True, width="stretch")
+    mostrar_tabla(tabla_rutas(inst, rutas))
     st.subheader("Horario de una ruta")
     k = st.selectbox("Ruta", list(range(1, len(rutas) + 1)), format_func=lambda i: f"Ruta {i}",
                      key="res_ruta")
     if k is not None and k <= len(rutas):
         st.plotly_chart(fig_horario(inst, rutas[k - 1]), width="stretch", key="horario")
-        st.dataframe(tabla_horario(inst, rutas[k - 1]), hide_index=True, width="stretch")
+        mostrar_tabla(tabla_horario(inst, rutas[k - 1]))
 
 
 # ---------------------------------------------------------------------------- vista: Benchmark
@@ -465,9 +475,7 @@ def vista_benchmark(bm) -> None:
         **{f"{e}": vista[f"{m}_distancia"] for m, e in METODOS.items()},
         **{f"Gap {e}": 100 * vista[f"gap_{m}"] for m, e in METODOS.items()},
         "Camiones ALNS": vista["alns_rutas"]})
-    st.dataframe(tabla, hide_index=True, width="stretch", column_config={
-        **{c: st.column_config.NumberColumn(format="%.1f") for c in ["Récord", *METODOS.values()]},
-        **{f"Gap {e}": st.column_config.NumberColumn(format="%.2f %%") for e in METODOS.values()}})
+    mostrar_tabla(tabla, porcentajes=[f"Gap {e}" for e in METODOS.values()])
     st.caption(f"{len(tabla)} de {len(bm)} instancias. Haz clic en una columna para ordenar.")
 
 
@@ -491,11 +499,7 @@ def vista_exacto(ex) -> None:
             "Gap Gurobi": 100 * col("gap_gurobi"),
             "Segundos Gurobi": col("segundos_gurobi"), "ALNS": col("alns_distancia"),
             "Gap ALNS vs Gurobi": 100 * col("gap_alns_vs_optimo")})
-        st.dataframe(tabla, hide_index=True, width="stretch", column_config={
-            **{c: st.column_config.NumberColumn(format="%.1f")
-               for c in ["Gurobi", "Cota inferior", "Segundos Gurobi", "ALNS"]},
-            **{c: st.column_config.NumberColumn(format="%.2f %%")
-               for c in ["Gap Gurobi", "Gap ALNS vs Gurobi"]}})
+        mostrar_tabla(tabla, porcentajes=["Gap Gurobi", "Gap ALNS vs Gurobi"])
         if "detalle" in ex:
             for _, f in ex[ex["detalle"].notna()].iterrows():
                 st.caption(f"{f['instancia']}: {f['detalle']}")

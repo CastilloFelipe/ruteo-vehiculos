@@ -4,8 +4,8 @@
 
 1. Las 56 instancias de Solomon (100 clientes): inserción, búsqueda local y ALNS, comparados
    con la mejor solución conocida -> resultados/benchmark.csv
-2. Versiones recortadas a N clientes (por defecto 25) de una instancia por familia: óptimo
-   exacto con Gurobi vs ALNS -> resultados/exacto.csv
+2. Versiones recortadas a 25 y 50 clientes de una instancia por familia: óptimo exacto con
+   Gurobi vs ALNS -> resultados/exacto.csv
 """
 from __future__ import annotations
 
@@ -93,7 +93,7 @@ def main() -> None:
     ap.add_argument("--segundos", type=float, default=10.0, help="Tiempo de ALNS por instancia")
     ap.add_argument("--procesos", type=int, default=4)
     ap.add_argument("--semilla", type=int, default=2026)
-    ap.add_argument("--n-exacto", type=int, default=25)
+    ap.add_argument("--n-exacto", type=int, nargs="+", default=[25, 50])
     ap.add_argument("--limite-gurobi", type=float, default=120.0)
     ap.add_argument("--solo", choices=["benchmark", "exacto"])
     a = ap.parse_args()
@@ -105,7 +105,8 @@ def main() -> None:
         print(b.groupby("familia")[["gap_insercion", "gap_local", "gap_alns"]].mean().round(4))
     if a.solo in (None, "exacto"):
         print(f"Exacto con Gurobi ({a.n_exacto} clientes)...")
-        e = exacto(a.n_exacto, a.limite_gurobi, min(a.segundos, 5.0), a.semilla)
+        e = pd.concat([exacto(n, a.limite_gurobi, min(a.segundos, 5.0), a.semilla)
+                       for n in a.n_exacto], ignore_index=True)
         e.to_csv(SALIDA / "exacto.csv", index=False)
     print(f"Resultados en {SALIDA}")
 

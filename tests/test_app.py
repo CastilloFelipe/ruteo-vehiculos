@@ -11,7 +11,7 @@ from ruteo.instancia import cargar, nombres
 
 APP = Path(__file__).resolve().parents[1] / "app"
 sys.path.insert(0, str(APP))
-VISTAS = ["Inicio", "Resolver una instancia", "Benchmark", "Exacto vs heurística"]
+VISTAS = ["Inicio", "Resolver una instancia", "Caso Santiago", "Benchmark", "Exacto vs heurística"]
 
 
 def _csv_sinteticos(carpeta: Path) -> None:

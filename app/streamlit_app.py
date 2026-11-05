@@ -24,6 +24,8 @@ for _p in (RAIZ / "src", Path(__file__).resolve().parent):
 
 import textos  # noqa: E402
 from animacion import VEHICULO, figura_animada  # noqa: E402
+from mapa import fig_mapa_calles, figura_animada_calles  # noqa: E402
+from ruteo import santiago  # noqa: E402
 from ruteo.evaluacion import distancia_ruta, evaluar, horario  # noqa: E402
 from ruteo.instancia import cargar, mejor_conocida, nombres  # noqa: E402
 
@@ -31,7 +33,7 @@ PALETA = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#62
 TINTA = "#1f2430"
 FAMILIAS = ["C1", "C2", "R1", "R2", "RC1", "RC2"]
 METODOS = {"insercion": "Inserción", "local": "Inserción + búsqueda local", "alns": "ALNS"}
-VISTAS = ["Inicio", "Resolver una instancia", "Benchmark", "Exacto vs heurística"]
+VISTAS = ["Inicio", "Resolver una instancia", "Caso Santiago", "Benchmark", "Exacto vs heurística"]
 ESTADOS = {"OPTIMAL": "Óptimo demostrado", "TIME_LIMIT": "Límite de tiempo",
            "NO_CABE": "No cabe en la licencia", "SIN_SOLUCION": "Sin solución en el tiempo",
            "INFEASIBLE": "Infactible"}
@@ -423,6 +425,142 @@ def vista_resolver() -> None:
         mostrar_tabla(tabla_horario(inst, rutas[k - 1]))
 
 
+# ---------------------------------------------------------------------------- vista: Caso Santiago
+
+@st.cache_resource(show_spinner=False)
+def caso_santiago(n: int, semilla: int) -> santiago.CasoSantiago:
+    return santiago.crear_caso(n, semilla)
+
+
+def _bultos(q: int) -> str:
+    return f"{q} bulto" if q == 1 else f"{q} bultos"
+
+
+def textos_santiago(caso, horarios=()) -> list[str]:
+    """Texto al pasar el mouse por cada punto: comuna, ventana, bultos y, si ya hay plan, la
+    hora de llegada."""
+    inst, hora = caso.inst, santiago.hora
+    visita = {f["cliente"]: f for _, filas in horarios for f in filas[:-1]}
+    textos_ = [f"<b>{santiago.NOMBRE_DEPOSITO}</b><br>Abre {hora(inst.inicio[0])}, "
+               f"cierra {hora(inst.fin[0])}"]
+    for c in range(1, inst.n_clientes + 1):
+        t = (f"<b>Cliente {c} · {caso.comunas[c]}</b><br>"
+             f"Ventana {hora(inst.inicio[c])}–{hora(inst.fin[c])} ({caso.tipo_ventana[c].lower()})"
+             f"<br>{_bultos(int(inst.demanda[c]))}")
+        if c in visita:
+            f = visita[c]
+            t += f"<br>Llega {hora(f['llegada'])}"
+            if f["espera"] >= 1:
+                t += f" y entrega {hora(f['inicio'])}"
+        textos_.append(t)
+    return textos_
+
+
+def _secuencia(nombres_: list[str]) -> str:
+    """Comunas en orden, juntando las repetidas seguidas: "Maipú ×2 → Estación Central"."""
+    partes: list[list] = []
+    for nom in nombres_:
+        if partes and partes[-1][0] == nom:
+            partes[-1][1] += 1
+        else:
+            partes.append([nom, 1])
+    return " → ".join(nom if k == 1 else f"{nom} ×{k}" for nom, k in partes)
+
+
+def tabla_santiago(caso, rutas, horarios) -> pd.DataFrame:
+    inst, filas = caso.inst, []
+    for k, (r, (salida, h)) in enumerate(zip(rutas, horarios)):
+        manejo = distancia_ruta(inst, r)
+        filas.append({"Camioneta": k + 1, "Clientes": len(r),
+                      "Bultos": f"{int(inst.demanda[r].sum())} / {inst.capacidad}",
+                      "Salida": santiago.hora(salida), "Regreso": santiago.hora(h[-1]["llegada"]),
+                      "Minutos de manejo": round(manejo, 1), "Km aprox.": round(caso.km(manejo), 1),
+                      "Secuencia": _secuencia([caso.comunas[c] for c in r])})
+    return pd.DataFrame(filas)
+
+
+def vista_santiago() -> None:
+    st.title("Caso Santiago")
+    caja = st.container(border=True)  # se llena más abajo, cuando se conoce el número de clientes
+    como_leer(textos.LEER_SANTIAGO.format(vehiculo=VEHICULO))
+    c1, c2, c3 = st.columns([1, 1, 1.4])
+    with c1:
+        n = st.slider("Clientes", 15, 60, 40, key="stgo_n")
+        semilla = int(st.number_input("Semilla", min_value=0, max_value=999_999, value=2026, step=1,
+                                      key="stgo_semilla",
+                                      help="Decide la ubicación, la ventana y el pedido de cada "
+                                           "cliente. También es la semilla de ALNS."))
+    with c2:
+        etiqueta = st.radio("Método", list(METODOS.values()), key="stgo_metodo")
+        metodo = next(m for m, e in METODOS.items() if e == etiqueta)
+        segundos = (st.slider("Segundos de ALNS", 1, 20, 5, key="stgo_seg")
+                    if metodo == "alns" else 0)
+    caso = caso_santiago(n, semilla)
+    inst = caso.inst
+    with c3:
+        tipos = caso.tipo_ventana[1:]
+        st.markdown(f"**{n} clientes** en {len(set(caso.comunas[1:]))} comunas · "
+                    f"{int(inst.demanda.sum())} bultos en total  \n"
+                    f"Ventanas: {tipos.count('Mañana')} de mañana, {tipos.count('Tarde')} de "
+                    f"tarde y {tipos.count('Todo el día')} todo el día  \n"
+                    f"Camionetas de {inst.capacidad} bultos (hay {inst.vehiculos}) · jornada de "
+                    f"{santiago.hora(inst.inicio[0])} a {santiago.hora(inst.fin[0])}")
+        boton = st.button("Planificar el día", type="primary", key="stgo_boton")
+    with caja:
+        st.markdown("#### ¿De qué se trata?")
+        st.markdown(textos.SANTIAGO_QUE_ES.format(n=n))
+
+    planes = st.session_state.setdefault("santiago", {})
+    clave = (n, semilla, metodo, segundos)
+    if boton:
+        try:
+            with st.spinner("Planificando las rutas..."):
+                planes[clave] = resolver_heuristica(inst, metodo, float(segundos), semilla)
+        except ImportError as e:
+            st.error(f"El módulo de heurísticas no está disponible: {e}")
+            return
+    plan = planes.get(clave)
+    if plan is None:
+        st.info("Elige el número de clientes y el método, y presiona **Planificar el día**.")
+        st.plotly_chart(fig_mapa_calles(caso.latlon, [], textos_santiago(caso),
+                                        f"Los {n} clientes del día"),
+                        width="stretch", key="stgo_mapa_clientes")
+        return
+
+    rutas = plan["rutas"]
+    if "horarios" not in plan:  # salida lo más tarde posible: la espera se hace en el centro
+        plan["horarios"] = [santiago.salida_y_horario(inst, r) for r in rutas]
+    horarios = plan["horarios"]
+    ev = evaluar(inst, rutas)
+    regreso = max((h[-1]["llegada"] for _, h in horarios), default=0.0)
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Camionetas", ev.n_rutas, help=f"De {inst.vehiculos} disponibles.")
+    m2.metric("Minutos de manejo", num(ev.distancia), help="Suma de todas las camionetas.")
+    m3.metric("Km aprox.", num(caso.km(ev.distancia), 0),
+              help=f"Minutos × {num(santiago.VELOCIDAD_KMH, 0)} / 60.")
+    m4.metric("Regreso de la última", santiago.hora(regreso))
+    st.caption(f"{etiqueta} · {num(plan['segundos'], 2)} s de cómputo · "
+               f"{'cumple todas las ventanas y capacidades' if ev.factible else 'no factible'}")
+    if not ev.factible:
+        st.warning("La solución viola restricciones: " + "; ".join(ev.violaciones))
+    if ev.n_rutas > inst.vehiculos:
+        st.warning(f"El plan usa {ev.n_rutas} camionetas y hay {inst.vehiculos}: las heurísticas "
+                   "no limitan la flota.")
+
+    hover = textos_santiago(caso, horarios)
+    st.plotly_chart(fig_mapa_calles(caso.latlon, rutas, hover,
+                                    f"{etiqueta}: {ev.n_rutas} camionetas, "
+                                    f"{num(ev.distancia)} minutos de manejo"),
+                    width="stretch", key="stgo_mapa")
+    st.subheader("Animación del día")
+    if "animacion" not in plan:  # se arma una vez por plan (cientos de frames)
+        plan["animacion"] = figura_animada_calles(inst, caso.latlon, rutas, horarios, hover,
+                                                  santiago.hora)
+    st.plotly_chart(plan["animacion"], width="stretch", key="stgo_animacion")
+    st.subheader("Camionetas")
+    mostrar_tabla(tabla_santiago(caso, rutas, horarios))
+
+
 # ---------------------------------------------------------------------------- vista: Benchmark
 
 def resumen_familias(bm: pd.DataFrame) -> pd.DataFrame:
@@ -605,6 +743,8 @@ def main() -> None:
         vista_inicio(bm, ex)
     elif vista == "Resolver una instancia":
         vista_resolver()
+    elif vista == "Caso Santiago":
+        vista_santiago()
     elif vista == "Benchmark":
         vista_benchmark(bm)
     else:

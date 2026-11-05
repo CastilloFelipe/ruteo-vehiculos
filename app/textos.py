@@ -139,6 +139,13 @@ Esta portada resume el problema, los datos y los métodos. La sección **Conclus
 calcula en vivo desde los archivos `resultados/benchmark.csv` y `resultados/exacto.csv`: si
 cambian los resultados, cambian los números. Al final hay un glosario de conceptos para quien
 está aprendiendo.
+
+Las otras vistas, en el menú de la izquierda:
+
+- **Resolver una instancia**: resuelve cualquier instancia de Solomon y anima el recorrido.
+- **Caso Santiago**: planifica un día de reparto ilustrativo en Santiago, sobre un mapa real.
+- **Benchmark**: las 56 instancias comparadas con los récords publicados.
+- **Exacto vs heurística**: ALNS contra el óptimo demostrado por Gurobi.
 """
 
 LEER_RESOLVER = """
@@ -161,6 +168,42 @@ LEER_RESOLVER = """
 7. **Horario de una ruta**: para cada parada, la barra azul clara es la ventana horaria del
    cliente, el rombo la llegada, la barra naranja la espera y la verde el servicio. El servicio siempre debe empezar dentro de la
    ventana.
+"""
+
+SANTIAGO_QUE_ES = """
+Un **centro de distribución en Pudahuel** (zona logística de ENEA) reparte paquetes a
+**{n} clientes** de distintas comunas de Santiago. Cada cliente pide entre 1 y 6 bultos y tiene
+su **ventana de entrega**: en la mañana (09:00 a 13:00), en la tarde (14:00 a 18:00) o todo el
+día. Las camionetas cargan 40 bultos, salen del centro desde las 08:00 y deben volver a más
+tardar a las 18:00.
+
+La pregunta del día: **¿cuántas camionetas deben salir y qué ruta sigue cada una para manejar
+el menor tiempo total?**
+
+**Es un caso ilustrativo.** Los clientes son sintéticos: se ubican al azar alrededor del centro
+de cada comuna. Los tiempos de viaje salen de la distancia en línea recta × 1,35 (el rodeo
+típico por calles) a 28 km/h promedio; no usan la red vial real ni el tráfico.
+"""
+
+LEER_SANTIAGO = """
+1. Elige cuántos clientes hay hoy, el método y la **semilla**. La semilla decide dónde están los
+   clientes, sus ventanas y sus pedidos: la misma semilla da siempre el mismo día. Presiona
+   **Planificar el día**.
+2. Arriba aparecen los indicadores: cuántas camionetas salen, los **minutos de manejo** en
+   total (lo que se minimiza), los km aproximados (minutos × 28 / 60) y la hora en que vuelve
+   la última camioneta. El número de camionetas es un resultado: no se minimiza directamente.
+3. **Mapa**: cada color es una camioneta y el círculo negro es el centro de distribución. Pasa
+   el mouse sobre un cliente para ver su comuna, su ventana, cuántos bultos pide y a qué hora
+   llega la camioneta. Se puede acercar y mover como cualquier mapa. Las líneas unen las
+   paradas en orden; no siguen las calles.
+4. **Animación**: presiona *Reproducir* o mueve el control de la hora. Cada {vehiculo} es una
+   camioneta. Sale del centro lo más tarde posible sin atrasar su regreso: así espera en el
+   centro y no en la puerta del cliente. Se detiene en cada cliente mientras entrega, y si
+   llega antes de que abra la ventana, espera ahí. El cliente pasa de gris al color de su
+   camioneta cuando recibe su pedido.
+5. **Camionetas**: para cada una, las comunas en el orden de visita (×2 = dos entregas
+   seguidas en la misma comuna), los bultos que carga, la hora de salida y de regreso, y sus
+   minutos de manejo.
 """
 
 LEER_BENCHMARK = """

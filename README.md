@@ -86,6 +86,16 @@ instancia por familia. Con el óptimo conocido, la brecha de ALNS es exacta y no
 Los datos completos están en [`resultados/benchmark.csv`](resultados/benchmark.csv) y
 [`resultados/exacto.csv`](resultados/exacto.csv).
 
+## Caso Santiago
+
+La vista **Caso Santiago** de la app lleva las mismas heurísticas a un día de reparto de última
+milla. Un centro de distribución en Pudahuel entrega paquetes a 15 a 60 clientes de 20 comunas,
+con ventanas de mañana, de tarde o de todo el día, en camionetas de 40 bultos. Las rutas se
+dibujan sobre un mapa de OpenStreetMap y una 🚚 por camioneta las recorre hora a hora; se
+minimizan los minutos de manejo. **Es un caso ilustrativo:** los clientes son sintéticos (al azar
+alrededor del centro de cada comuna) y los tiempos de viaje salen de la distancia en línea recta
+× 1,35 a 28 km/h, sin la red vial real ni el tráfico (`src/ruteo/santiago.py`).
+
 ## Métodos
 
 | Etapa | Qué hace | Dónde |
@@ -156,7 +166,9 @@ src/ruteo/
   evaluacion.py    factibilidad, distancia y horario de cada ruta
   heuristicas.py   inserción, búsqueda local y ALNS
   exacto.py        MILP en Gurobi
-app/               Streamlit: inicio, resolver una instancia (con animación), benchmark, exacto
+  santiago.py      caso ilustrativo de reparto en Santiago (clientes, ventanas, tiempos)
+app/               Streamlit: inicio, resolver una instancia (con animación), caso Santiago,
+                   benchmark, exacto
 scripts/           descarga de datos y benchmark
 resultados/        CSV del benchmark y del exacto
 ```

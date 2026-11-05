@@ -19,7 +19,7 @@ recorre, para ver el orden de las visitas y la espera por las ventanas horarias.
 
 ## Resultados
 
-ALNS con **10 segundos por instancia** queda a un **1,6% en promedio** de las mejores soluciones
+ALNS con **10 segundos por instancia** queda a un **1,5% en promedio** de las mejores soluciones
 conocidas. Iguala el récord en las 17 instancias agrupadas (C1 y C2). Las tres etapas se
 encadenan: la inserción entrega una primera solución, la búsqueda local la pule y ALNS la
 mejora.
@@ -28,11 +28,11 @@ mejora.
 |---|---|---|---|---|---|---|---|
 | C1 | 9 | 39.3% | 5.4% | **0.0%** | 9 | 10.0 | 10.0 |
 | C2 | 8 | 66.8% | 3.8% | **0.0%** | 8 | 3.0 | 3.0 |
-| R1 | 12 | 39.5% | 8.2% | **1.0%** | 2 | 13.2 | 13.6 |
-| R2 | 11 | 66.6% | 15.3% | **3.0%** | 0 | 5.5 | 5.0 |
-| RC1 | 8 | 42.4% | 12.2% | **2.8%** | 0 | 12.5 | 13.5 |
-| RC2 | 8 | 81.7% | 16.4% | **3.0%** | 0 | 6.2 | 5.5 |
-| **Total** | 56 | 55.2% | 10.3% | **1.6%** | 19 | 8.6 | 8.6 |
+| R1 | 12 | 39.5% | 8.2% | **1.2%** | 0 | 13.2 | 13.7 |
+| R2 | 11 | 66.6% | 15.3% | **3.2%** | 0 | 5.5 | 4.6 |
+| RC1 | 8 | 42.4% | 12.2% | **2.3%** | 0 | 12.5 | 13.4 |
+| RC2 | 8 | 81.7% | 16.4% | **2.0%** | 0 | 6.2 | 6.0 |
+| **Total** | 56 | 55.2% | 10.3% | **1.5%** | 17 | 8.6 | 8.6 |
 
 *Porcentajes = brecha en distancia contra la mejor solución conocida (promedio por familia).
 "ALNS = récord": instancias con brecha ≤ 0,05%.*
@@ -54,14 +54,14 @@ instancia por familia. Con el óptimo conocido, la brecha de ALNS es exacta y no
 |---|---|---|---|---|
 | C101-25 / C201-25 / R101-25 / R201-25 / RC101-25 / RC201-25 | todos probados | < 0,5 s | igual al óptimo | **0%** |
 | C101-50 | 362.4 | 0.1 s | 362.4 | 0% |
-| C201-50 | 360.2 | 0.2 s | 360.2 | 0% |
-| R101-50 | 1044.0 | 0.1 s | 1045.7 | 0.16% |
-| R201-50 | 791.9 | 0.3 s | 795.1 | 0.40% |
-| RC101-50 | 944.0 | 9.6 s | 957.1 | 1.39% |
-| RC201-50 | 684.8 | 1.2 s | 684.8 | 0% |
+| C201-50 | 360.2 | 0.1 s | 360.2 | 0% |
+| R101-50 | 1044.0 | 0.1 s | 1045.3 | 0.12% |
+| R201-50 | 791.9 | 0.2 s | 791.9 | 0% |
+| RC101-50 | 944.0 | 5.5 s | 944.0 | 0% |
+| RC201-50 | 684.8 | 0.7 s | 684.8 | 0% |
 
 **Conclusión:**
-- ALNS encuentra el óptimo en 9 de 12 casos y queda a menos de 1,4% en los otros tres.
+- ALNS encuentra el óptimo en 11 de 12 casos, y en el otro queda a 0,12%.
 - El exacto no escala: la licencia gratuita de Gurobi limita el modelo a 2000 variables, y el
   VRPTW crece con el cuadrado de los clientes. En 100 clientes o en una operación real, la
   heurística es la herramienta práctica, y el exacto sirve para validarla.

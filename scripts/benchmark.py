@@ -96,12 +96,14 @@ def main() -> None:
     ap.add_argument("--n-exacto", type=int, nargs="+", default=[25, 50])
     ap.add_argument("--limite-gurobi", type=float, default=120.0)
     ap.add_argument("--solo", choices=["benchmark", "exacto"])
+    ap.add_argument("--archivo", default="benchmark.csv",
+                    help="Nombre del CSV del benchmark dentro de resultados/")
     a = ap.parse_args()
     SALIDA.mkdir(exist_ok=True)
     if a.solo in (None, "benchmark"):
         print("Benchmark Solomon (56 instancias)...")
         b = benchmark(a.segundos, a.procesos, a.semilla)
-        b.to_csv(SALIDA / "benchmark.csv", index=False)
+        b.to_csv(SALIDA / a.archivo, index=False)
         print(b.groupby("familia")[["gap_insercion", "gap_local", "gap_alns"]].mean().round(4))
     if a.solo in (None, "exacto"):
         print(f"Exacto con Gurobi ({a.n_exacto} clientes)...")

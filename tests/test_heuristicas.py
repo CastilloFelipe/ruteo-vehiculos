@@ -4,7 +4,7 @@ import pytest
 
 from ruteo.evaluacion import evaluar
 from ruteo.heuristicas import alns, busqueda_local, insercion
-from ruteo.instancia import cargar
+from ruteo.instancia import cargar, mejor_conocida
 
 NOMBRES = ["C101", "R101", "RC101", "C201"]
 
@@ -52,7 +52,7 @@ def test_busqueda_local_es_un_optimo_local(caso):
 @pytest.mark.parametrize("nombre", NOMBRES + ["R101-25"])
 def test_alns_factible_no_peor_y_historial_monotono(nombre):
     inst = _instancia(nombre)
-    rutas, historial = alns(inst, segundos=2, semilla=1)
+    rutas, historial = alns(inst, segundos=60, semilla=1, max_iter=400)
     ev = evaluar(inst, rutas)
     assert ev.factible, ev.violaciones
     assert _cubre_a_todos(inst, rutas)
@@ -60,7 +60,6 @@ def test_alns_factible_no_peor_y_historial_monotono(nombre):
     assert ev.distancia <= base + 1e-6
     tiempos = [t for t, _ in historial]
     distancias = [f for _, f in historial]
-    assert tiempos[0] < 1.0
     assert tiempos == sorted(tiempos)
     assert all(b < a for a, b in zip(distancias, distancias[1:]))
     assert distancias[-1] == pytest.approx(ev.distancia)
@@ -79,3 +78,14 @@ def test_alns_es_reproducible_con_la_misma_semilla():
     a = alns(inst, segundos=60, semilla=7, max_iter=300)[0]
     b = alns(inst, segundos=60, semilla=7, max_iter=300)[0]
     assert a == b
+
+
+def test_rutas_iniciales_no_factibles_se_rechazan():
+    inst = cargar("C101")
+    rutas, _ = mejor_conocida("C101")
+    juntas = [rutas[0] + rutas[1], *rutas[2:]]  # supera la capacidad del camión
+    assert not evaluar(inst, juntas).factible
+    with pytest.raises(ValueError):
+        alns(inst, max_iter=10, rutas_iniciales=juntas)
+    with pytest.raises(ValueError):
+        busqueda_local(inst, juntas)

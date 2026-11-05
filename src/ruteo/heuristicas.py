@@ -22,6 +22,7 @@ import time
 
 import numpy as np
 
+from .evaluacion import evaluar
 from .instancia import Instancia
 
 EPS = 1e-7
@@ -395,14 +396,22 @@ def _busqueda_local(D: _Datos, rutas: list[list[int]]) -> list[list[int]]:
     return _BusquedaLocal(D, rutas).ejecutar()
 
 
+def _validar(inst: Instancia, rutas: list[list[int]]) -> None:
+    """Las rutas que entrega el usuario deben ser una solución factible y completa."""
+    ev = evaluar(inst, rutas)
+    if not ev.factible:
+        raise ValueError("Las rutas iniciales no son factibles: " + "; ".join(ev.violaciones[:3]))
+
+
 def busqueda_local(inst: Instancia, rutas: list[list[int]]) -> list[list[int]]:
     """Búsqueda local hasta óptimo local: or-opt (tramos de 1-3, intra e inter-ruta),
     swap inter-ruta, 2-opt* (intercambio de colas) y 2-opt intra-ruta.
 
     Cada vecindario toma, para cada elemento, el mejor movimiento factible que reduce la
-    distancia. Supone que `rutas` es factible; nunca empeora la distancia y elimina las
-    rutas vacías.
+    distancia. `rutas` debe ser factible (si no, ValueError); nunca empeora la distancia y
+    elimina las rutas vacías.
     """
+    _validar(inst, rutas)
     return _busqueda_local(_Datos(inst), rutas)
 
 
@@ -543,6 +552,8 @@ def alns(inst: Instancia, segundos: float = 10.0, semilla: int = 2026,
     t0 = time.perf_counter()
     D = _Datos(inst)
     rng = random.Random(semilla)
+    if rutas_iniciales is not None:
+        _validar(inst, rutas_iniciales)
     inicial = _insercion(D) if rutas_iniciales is None else [list(r) for r in rutas_iniciales]
     actual = _busqueda_local(D, inicial)
     f_actual = _costo(D, actual)
@@ -582,7 +593,10 @@ def alns(inst: Instancia, segundos: float = 10.0, semilla: int = 2026,
         elif f < f_actual - EPS:
             actual, f_actual, puntaje = cand, f, 9.0
         elif rng.random() < math.exp(-(f - f_actual) / temp):
-            actual, f_actual, puntaje = cand, f, 13.0
+            # Ropke y Pisinger premian solo las soluciones peores aceptadas; aceptar una de
+            # igual costo no suma puntaje (si no, los pesos premian movimientos que no cambian nada).
+            puntaje = 13.0 if f > f_actual + EPS else 0.0
+            actual, f_actual = cand, f
         else:
             puntaje = 0.0
 

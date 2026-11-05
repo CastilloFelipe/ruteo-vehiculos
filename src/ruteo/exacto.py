@@ -24,7 +24,7 @@ from dataclasses import dataclass
 import gurobipy as gp
 from gurobipy import GRB
 
-from .evaluacion import distancia_ruta
+from .evaluacion import distancia_ruta, evaluar
 from .instancia import Instancia
 
 # Límites de la licencia de tamaño restringido que trae `pip install gurobipy`.
@@ -34,6 +34,8 @@ LIMITE_RESTRICCIONES: int | None = 2000
 
 @dataclass
 class ResultadoExacto:
+    """Resultado de Gurobi. `cota` es la cota inferior probada y `gap` la brecha relativa
+    (incumbente − cota) / incumbente que reporta Gurobi: 0 significa óptimo probado."""
     rutas: list[list[int]]
     distancia: float | None
     cota: float | None
@@ -143,6 +145,15 @@ def resolver_exacto(inst: Instancia, limite_seg: float = 60.0,
 
     n = inst.n_clientes
     a, b, s, d, q = inst.inicio, inst.fin, inst.servicio, inst.dist, inst.demanda
+    if n == 0:
+        return ResultadoExacto([], 0.0, 0.0, 0.0, "OPTIMAL", 0.0)
+    # Las restricciones de tiempo eliminan los subtours solo si cada arco entre clientes toma
+    # tiempo (servicio + viaje > 0); si no, deben hacerlo las de carga, con demanda positiva.
+    for i, j in e.arcos:
+        if i and j and s[i] + d[i, j] <= 0 and not (e.usa_carga and q[j] > 0):
+            raise ValueError(
+                f"El arco {i}→{j} de {inst.nombre} no toma tiempo (servicio + distancia = 0): "
+                "con esta formulación podrían aparecer subtours.")
     t0 = time.perf_counter()
     with gp.Env(empty=True) as env:
         env.setParam("OutputFlag", 1 if verbose else 0)
@@ -195,6 +206,10 @@ def resolver_exacto(inst: Instancia, limite_seg: float = 60.0,
                 if var.X > 0.5:
                     sucesor.setdefault(i, []).append(j)
             rutas = _rutas_desde_arcos(sucesor)
+            ev = evaluar(inst, rutas)
+            if not ev.factible:  # red de seguridad: no debería ocurrir con la poda y el big-M
+                raise RuntimeError(f"Gurobi entregó rutas no factibles para {inst.nombre}: "
+                                   + "; ".join(ev.violaciones[:3]))
             estado = {GRB.OPTIMAL: "OPTIMAL", GRB.TIME_LIMIT: "TIME_LIMIT"}.get(
                 m.Status, f"GUROBI_{m.Status}")
             return ResultadoExacto(rutas, sum(distancia_ruta(inst, r) for r in rutas),
